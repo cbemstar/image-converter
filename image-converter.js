@@ -1,3 +1,4 @@
+<script>
 // Image Converter App for Webflow-native UI
 // All selectors use data-wf attributes. Add these attributes to your Webflow elements as described in the comments.
 // Requires JSZip (add via CDN in Webflow project settings)
@@ -184,3 +185,4 @@ async function offerWebflowUpload(convertedFiles) {
 }
 
 // --- End of image-converter.js ---
+</script>
