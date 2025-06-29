@@ -248,6 +248,26 @@
       background: #172f37 !important;
       color: #cde5da !important;
     }
+    /* Preview table: semi-transparent background for contrast */
+    #preview-table {
+      background: rgba(255,255,255,0.85) !important;
+      color: #172f37 !important;
+      border-radius: 12px;
+    }
+    #preview-table th, #preview-table td {
+      color: #172f37 !important;
+      background: transparent !important;
+    }
+    /* If you want to support a light page background, add this media query or class toggle as needed: */
+    /*
+    body.light-bg #preview-table {
+      background: rgba(23,47,55,0.85) !important;
+      color: #cde5da !important;
+    }
+    body.light-bg #preview-table th, body.light-bg #preview-table td {
+      color: #cde5da !important;
+    }
+    */
   </style>
 </head>
 <body class=" bg-transparent min-h-screen">
@@ -291,7 +311,7 @@
     <button id="download-selected" class="hidden">Download Selected</button>
   </div>
   <div class="overflow-x-auto max-w-5xl mx-auto px-2 sm:px-4 min-w-0">
-    <table id="preview-table" class="min-w-full w-full mb-8 text-sm sm:text-base table-auto" style="background: transparent !important;">
+    <table id="preview-table" class="min-w-full w-full mb-8 text-sm sm:text-base table-auto" style="background: rgba(255,255,255,0.85); display: none;">
       <thead>
         <tr class="bg-blue-100 text-blue-900">
           <th class="py-2 px-2 sm:px-4"><input type="checkbox" id="select-all"></th>
@@ -354,8 +374,7 @@
       progressStatus.textContent = `Processing ${imageFiles.length} images.`;
       progressBar.style.width = '0';
       previewTbody.innerHTML = '';
-      previewTable.classList.remove('hidden');
-      previewTable.classList.add('table');
+      previewTable.style.display = 'table';
       processImages(imageFiles, maxW, maxH, quality, outputFormatInput.value);
     }
 
