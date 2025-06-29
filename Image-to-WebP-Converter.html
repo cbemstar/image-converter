@@ -6,6 +6,40 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <style>
+    body {
+      font-family: inherit;
+    }
+    label, th, .font-medium, .text-blue-900, .text-gray-500, .text-lg, .text-sm, .text-base, .break-words, .whitespace-normal, .max-w-xs, .max-w-5xl, .text-center, .font-bold {
+      color: #cde5da !important;
+    }
+    #preview-table th, #preview-table td {
+      color: #cde5da !important;
+    }
+    .bg-blue-500, .bg-green-500, .bg-blue-600, .bg-green-600 {
+      background-color: #172f37 !important;
+      color: #cde5da !important;
+      border: none;
+    }
+    .bg-blue-500:hover, .bg-green-500:hover, .bg-blue-600:hover, .bg-green-600:hover {
+      background-color: #cde5da !important;
+      color: #172f37 !important;
+    }
+    .text-blue-700, .text-blue-600, .text-blue-500, .text-blue-100 {
+      color: #cde5da !important;
+    }
+    .shadow, .hover\:shadow-lg, .rounded, .border, .border-dashed, .border-blue-400 {
+      box-shadow: none !important;
+      border-color: #cde5da !important;
+    }
+    input, select, textarea {
+      color: #172f37 !important;
+      background-color: #cde5da !important;
+      border: 1px solid #cde5da !important;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: 2px solid #cde5da !important;
+      box-shadow: 0 0 0 2px #cde5da !important;
+    }
     img.preview { max-width: 120px; max-height: 120px; border-radius: 6px; }
     @media (max-width: 768px) {
       .max-w-xs {
@@ -126,6 +160,7 @@
   </style>
 </head>
 <body class=" bg-transparent min-h-screen">
+  <h1 class="text-3xl font-bold text-center my-8" style="color: #cde5da;">Image Conversion Tool</h1>
   <div id="controls" class="flex flex-wrap justify-center gap-4 mb-8">
     <div class="bg-white rounded shadow px-3 py-2 flex items-center gap-2">
       <label for="max-width" class="font-medium">Max Width:</label>
