@@ -315,6 +315,11 @@
     <a id="download-link" href="#" download="converted_images.zip" class="hidden">Download All as ZIP</a>
     <button id="download-selected" class="hidden">Download Selected</button>
   </div>
+  <div id="bulk-rename-controls" class="flex flex-wrap justify-center gap-2 mb-4" style="align-items:center;">
+    <input id="bulk-rename-base" type="text" placeholder="Base name (e.g. Image)" class="border rounded px-2 py-1" style="background-color:#172f37;color:#cde5da;border:1.5px solid #cde5da;" />
+    <input id="bulk-rename-start" type="number" min="1" value="1" class="border rounded px-2 py-1 w-20" style="background-color:#172f37;color:#cde5da;border:1.5px solid #cde5da;" />
+    <button id="bulk-rename-btn" style="background-color:#cde5da;color:#172f37;border-radius:0.375rem;padding:0.5rem 1.25rem;border:none;font-weight:600;">Bulk Rename</button>
+  </div>
   <div class="overflow-x-auto max-w-5xl mx-auto px-2 sm:px-4 min-w-0">
     <table id="preview-table" class="min-w-full w-full mb-8 text-sm sm:text-base table-auto" style="background: transparent; display: none;">
       <thead>
@@ -551,6 +556,27 @@
     // Also send height on load and resize
     window.addEventListener('load', sendHeightToParent);
     window.addEventListener('resize', sendHeightToParent);
+
+    document.getElementById('bulk-rename-btn').addEventListener('click', function() {
+      const base = document.getElementById('bulk-rename-base').value.trim();
+      let start = parseInt(document.getElementById('bulk-rename-start').value, 10);
+      if (!base || isNaN(start)) return;
+      if (!window._webpImages) return;
+      window._webpImages.forEach((img, i) => {
+        const ext = img.filename.split('.').pop();
+        img.filename = `${base}${start + i}.${ext}`;
+        // Update table row
+        const tr = document.querySelector(`#preview-table tbody tr:nth-child(${i+1})`);
+        if (tr) {
+          // Update filename cell
+          const filenameTd = tr.querySelector('td:nth-child(4)');
+          if (filenameTd) filenameTd.textContent = img.filename;
+          // Update download link
+          const downloadLink = tr.querySelector('.download-btn');
+          if (downloadLink) downloadLink.setAttribute('download', img.filename);
+        }
+      });
+    });
   </script>
 </body>
 </html>
