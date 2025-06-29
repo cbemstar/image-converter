@@ -411,6 +411,10 @@
     const progressStatus = document.getElementById('progress-status');
     const progressBar = document.getElementById('progress-bar');
 
+    // Modal elements for image preview
+    const imageModal = document.getElementById('image-modal');
+    const modalImg = imageModal.querySelector('img');
+
     dropArea.addEventListener('dragover', e => {
       e.preventDefault();
       dropArea.style.borderColor = '#333';
@@ -608,11 +612,9 @@
         e.target.parentElement.innerHTML = `<button class='rename-btn' data-index='${idx}'>Rename</button>`;
       } else if (e.target.closest('.magnify-icon')) {
         const imgSrc = e.target.closest('.magnify-icon').getAttribute('data-img');
-        const imageModal = document.getElementById('image-modal');
-        const modalImg = imageModal.querySelector('img');
         modalImg.src = imgSrc;
         imageModal.classList.add('active');
-      } else if (e.target.classList.contains('close-modal') || (e.target === document.getElementById('image-modal'))) {
+      } else if (e.target.classList.contains('close-modal') || (e.target === imageModal)) {
         imageModal.classList.remove('active');
         modalImg.src = '';
       }
