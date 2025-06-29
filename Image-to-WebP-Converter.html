@@ -273,6 +273,61 @@
       color: #cde5da !important;
     }
     */
+    .preview-img-container {
+      position: relative;
+      display: inline-block;
+    }
+    .magnify-icon {
+      display: none;
+      position: absolute;
+      right: 6px;
+      bottom: 6px;
+      background: rgba(23,47,55,0.7);
+      border-radius: 50%;
+      padding: 4px;
+      cursor: pointer;
+      z-index: 2;
+      transition: opacity 0.2s;
+    }
+    .preview-img-container:hover .magnify-icon {
+      display: block;
+      opacity: 0.85;
+    }
+    .magnify-icon svg {
+      width: 20px;
+      height: 20px;
+      fill: #cde5da;
+      opacity: 0.8;
+    }
+    #image-modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(23,47,55,0.85);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+    }
+    #image-modal.active {
+      display: flex;
+    }
+    #image-modal img {
+      max-width: 90vw;
+      max-height: 90vh;
+      border-radius: 12px;
+      box-shadow: 0 4px 32px rgba(0,0,0,0.4);
+    }
+    #image-modal .close-modal {
+      position: absolute;
+      top: 24px;
+      right: 32px;
+      font-size: 2rem;
+      color: #cde5da;
+      cursor: pointer;
+      z-index: 10000;
+      background: none;
+      border: none;
+    }
   </style>
 </head>
 <body class=" bg-transparent min-h-screen">
@@ -335,6 +390,11 @@
       </thead>
       <tbody></tbody>
     </table>
+  </div>
+  <!-- Modal for image preview -->
+  <div id="image-modal">
+    <button class="close-modal" aria-label="Close">&times;</button>
+    <img src="" alt="Preview" />
   </div>
   <script>
     const dropArea = document.getElementById('drop-area');
@@ -429,11 +489,18 @@
         tr.innerHTML = `
           <td class="align-top py-2 px-2 sm:px-4"><input type="checkbox" class="select-image" data-index="${index}"></td>
           <td class="align-top py-2 px-2 sm:px-4">${index}</td>
-          <td class="align-top py-2 px-2 sm:px-4"><img class="preview" src="${e.target.result}" alt="preview"></td>
+          <td class="align-top py-2 px-2 sm:px-4">
+            <span class="preview-img-container">
+              <img class="preview" src="${e.target.result}" alt="preview">
+              <span class="magnify-icon" data-img="${e.target.result}">
+                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="#cde5da" stroke-width="2" fill="none"/><line x1="16.5" y1="16.5" x2="21" y2="21" stroke="#cde5da" stroke-width="2"/></svg>
+              </span>
+            </span>
+          </td>
           <td class="align-top py-2 px-2 sm:px-4 break-words whitespace-normal max-w-[180px] sm:max-w-xs">${file.name}</td>
           <td class="align-top py-2 px-2 sm:px-4"><button class="rename-btn" data-index="${index}">Rename</button></td>
           <td class="align-top py-2 px-2 sm:px-4">${sizeStr}</td>
-          <td class="align-top py-2 px-2 sm:px-4"><a href="${downloadUrl}" download="${filename}" class="download-btn text-blue-600 hover:underline">Download</a></td>
+          <td class="align-top py-2 px-2 sm:px-4"><a href="${downloadUrl}" download="${filename}" class="download-btn">Download</a></td>
         `;
         previewTbody.appendChild(tr);
       };
@@ -539,6 +606,15 @@
         if (filenameTd) filenameTd.textContent = fileObj.filename;
         // Restore Rename button
         e.target.parentElement.innerHTML = `<button class='rename-btn' data-index='${idx}'>Rename</button>`;
+      } else if (e.target.closest('.magnify-icon')) {
+        const imgSrc = e.target.closest('.magnify-icon').getAttribute('data-img');
+        const imageModal = document.getElementById('image-modal');
+        const modalImg = imageModal.querySelector('img');
+        modalImg.src = imgSrc;
+        imageModal.classList.add('active');
+      } else if (e.target.classList.contains('close-modal') || (e.target === document.getElementById('image-modal'))) {
+        imageModal.classList.remove('active');
+        modalImg.src = '';
       }
     });
 
