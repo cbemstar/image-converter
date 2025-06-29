@@ -13,7 +13,11 @@
       color: #cde5da !important;
     }
     #preview-table th, #preview-table td {
-      color: #cde5da !important;
+      color: #172f37 !important;
+      background: transparent !important;
+    }
+    #preview-table thead tr {
+      background: transparent !important;
     }
     /* Input fields for Max Width, Max Height, Quality */
     #max-width, #max-height, #quality {
@@ -77,9 +81,6 @@
       color: #cde5da !important;
     }
     /* Table header bar: light background, dark text */
-    #preview-table thead tr {
-      background: #cde5da !important;
-    }
     #preview-table thead th {
       color: #172f37 !important;
       font-weight: bold;
@@ -201,6 +202,52 @@
         max-height: 70px;
       }
     }
+    /* Download All as ZIP and Download Selected buttons */
+    #download-link, #download-selected {
+      border: 2px solid #cde5da !important;
+      background: transparent !important;
+      color: #cde5da !important;
+      transition: background 0.2s, color 0.2s, border-color 0.2s;
+      margin: 0.5rem;
+      min-width: 180px;
+      text-align: center;
+    }
+    #download-link:hover, #download-selected:hover {
+      background: #cde5da !important;
+      color: #172f37 !important;
+    }
+    /* Responsive button container */
+    .download-btns-responsive {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1rem;
+    }
+    @media (max-width: 600px) {
+      .download-btns-responsive {
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: stretch;
+      }
+      #download-link, #download-selected {
+        min-width: unset;
+        width: 100%;
+      }
+    }
+    /* Table download button */
+    .download-btn {
+      color: #172f37 !important;
+      border: 1.5px solid #172f37 !important;
+      background: transparent !important;
+      padding: 0.25rem 0.75rem;
+      border-radius: 4px;
+      transition: background 0.2s, color 0.2s;
+      font-weight: 500;
+    }
+    .download-btn:hover {
+      background: #172f37 !important;
+      color: #cde5da !important;
+    }
   </style>
 </head>
 <body class=" bg-transparent min-h-screen">
@@ -239,11 +286,9 @@
     <input type="file" id="fileElem" accept="image/*" multiple style="display:none">
     <button onclick="fileElem.click()" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-6 py-2 rounded shadow transition-colors">Select Images</button>
   </div>
-  <div class="flex justify-center mb-8">
-    <a id="download-link" href="#" download="converted_images.zip" class="hidden bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-2 rounded shadow transition-colors mx-auto block w-fit">Download All as ZIP</a>
-  </div>
-  <div id="download-selected-container" class="hidden flex justify-center mb-8">
-    <button id="download-selected" class="bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-2 rounded shadow transition-colors mx-auto block w-fit">Download Selected</button>
+  <div class="download-btns-responsive mb-8">
+    <a id="download-link" href="#" download="converted_images.zip" class="hidden">Download All as ZIP</a>
+    <button id="download-selected" class="hidden">Download Selected</button>
   </div>
   <div class="overflow-x-auto max-w-5xl mx-auto px-2 sm:px-4 min-w-0">
     <table id="preview-table" class="min-w-full w-full bg-white rounded shadow mb-8 text-sm sm:text-base table-auto">
@@ -338,10 +383,10 @@
         const zipBlob = await zip.generateAsync({type: 'blob'});
         downloadLink.href = URL.createObjectURL(zipBlob);
         downloadLink.style.display = 'inline-block';
-        document.getElementById('download-selected-container').classList.remove('hidden');
+        document.getElementById('download-selected').classList.remove('hidden');
       } else {
         downloadLink.style.display = 'none';
-        document.getElementById('download-selected-container').classList.add('hidden');
+        document.getElementById('download-selected').classList.add('hidden');
       }
     }
 
@@ -465,6 +510,21 @@
         // Update original filename cell visually if you want (optional)
       }
     });
+
+    function sendHeightToParent() {
+      if (window.parent) {
+        window.parent.postMessage(
+          { type: 'setIframeHeight', height: document.body.scrollHeight },
+          '*'
+        );
+      }
+    }
+    // Observe DOM changes and send height to parent
+    const resizeObserver = new MutationObserver(sendHeightToParent);
+    resizeObserver.observe(document.body, { childList: true, subtree: true });
+    // Also send height on load and resize
+    window.addEventListener('load', sendHeightToParent);
+    window.addEventListener('resize', sendHeightToParent);
   </script>
 </body>
 </html>
