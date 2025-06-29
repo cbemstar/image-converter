@@ -222,12 +222,23 @@
       <span class="text-gray-500">(0.1 - 1)</span>
     </div>
   </div>
+  <div id="format-controls" class="flex justify-center mb-4">
+    <label for="output-format" class="font-medium mr-2">Output Format:</label>
+    <select id="output-format" class="border rounded px-2 py-1" style="background-color:#172f37;color:#cde5da;border:1.5px solid #cde5da;">
+      <option value="webp">WebP</option>
+      <option value="jpeg">JPEG</option>
+      <option value="png">PNG</option>
+    </select>
+  </div>
+  <div id="progress-status" class="text-center text-lg font-medium mb-2" style="color:#cde5da;"></div>
+  <div id="progress-bar-container" class="w-full max-w-2xl mx-auto mb-4" style="height:18px;background:none;border-radius:8px;">
+    <div id="progress-bar" style="height:100%;width:0;background:#cde5da;border-radius:8px;transition:width 0.3s;"></div>
+  </div>
   <div id="drop-area" class="border-2 border-dashed border-blue-400 rounded-lg p-8 text-center text-blue-500 mb-8 bg-white shadow hover:shadow-lg transition-shadow cursor-pointer max-w-2xl mx-auto px-4">
     <p class="mb-4">Drag & drop your image files here</p>
     <input type="file" id="fileElem" accept="image/*" multiple style="display:none">
     <button onclick="fileElem.click()" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-6 py-2 rounded shadow transition-colors">Select Images</button>
   </div>
-  <div id="progress" class="text-center text-lg font-medium text-blue-700 mb-4"></div>
   <div class="flex justify-center mb-8">
     <a id="download-link" href="#" download="converted_images.zip" class="hidden bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-2 rounded shadow transition-colors mx-auto block w-fit">Download All as ZIP</a>
   </div>
@@ -242,6 +253,7 @@
           <th class="py-2 px-2 sm:px-4">#</th>
           <th class="py-2 px-2 sm:px-4">Preview</th>
           <th class="py-2 px-2 sm:px-4">Original Filename</th>
+          <th class="py-2 px-2 sm:px-4">Rename</th>
           <th class="py-2 px-2 sm:px-4">WebP Size</th>
           <th class="py-2 px-2 sm:px-4">Download</th>
         </tr>
@@ -260,6 +272,9 @@
     const maxWidthInput = document.getElementById('max-width');
     const maxHeightInput = document.getElementById('max-height');
     const qualityInput = document.getElementById('quality');
+    const outputFormatInput = document.getElementById('output-format');
+    const progressStatus = document.getElementById('progress-status');
+    const progressBar = document.getElementById('progress-bar');
 
     dropArea.addEventListener('dragover', e => {
       e.preventDefault();
@@ -285,44 +300,44 @@
         alert('Please select image files only.');
         return;
       }
-      // Read user input values, fallback to defaults if invalid
       let maxW = parseInt(maxWidthInput.value, 10);
       let maxH = parseInt(maxHeightInput.value, 10);
       let quality = parseFloat(qualityInput.value);
       if (isNaN(maxW) || maxW < 1 || maxW > 99999) maxW = 99999;
       if (isNaN(maxH) || maxH < 1 || maxH > 99999) maxH = 9999;
       if (isNaN(quality) || quality < 0.1 || quality > 1) quality = 0.95;
-      progress.textContent = `Processing ${imageFiles.length} image(s)...`;
+      progressStatus.textContent = `Processing ${imageFiles.length} images.`;
+      progressBar.style.width = '0';
       previewTbody.innerHTML = '';
       previewTable.classList.remove('hidden');
       previewTable.classList.add('table');
-      processImages(imageFiles, maxW, maxH, quality);
+      processImages(imageFiles, maxW, maxH, quality, outputFormatInput.value);
     }
 
-    async function processImages(files, maxW, maxH, quality) {
+    async function processImages(files, maxW, maxH, quality, format) {
       const zip = new JSZip();
       let processed = 0;
-      // Store blobs and filenames for selected download
       window._webpImages = [];
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         try {
-          const webpBlob = await convertToWebP(file, maxW, maxH, quality);
-          const filename = file.name.replace(/\.[^.]+$/, '') + '.webp';
-          zip.file(filename, webpBlob);
-          showPreview(i + 1, file, webpBlob, filename);
-          window._webpImages.push({index: i + 1, file, webpBlob, filename});
+          const {blob, filename} = await convertToFormat(file, maxW, maxH, quality, format);
+          zip.file(filename, blob);
+          showPreview(i + 1, file, blob, filename);
+          window._webpImages.push({index: i + 1, file, webpBlob: blob, filename});
         } catch (err) {
           showError(i + 1, file.name, err);
         }
         processed++;
-        progress.textContent = `Processed ${processed} of ${files.length} image(s).`;
+        progressStatus.textContent = `Processing ${files.length} images. (${processed}/${files.length})`;
+        progressBar.style.width = `${(processed / files.length) * 100}%`;
       }
+      progressStatus.textContent = `Done! Processed ${files.length} images.`;
+      progressBar.style.width = '100%';
       if (files.length > 1) {
         const zipBlob = await zip.generateAsync({type: 'blob'});
         downloadLink.href = URL.createObjectURL(zipBlob);
         downloadLink.style.display = 'inline-block';
-        progress.textContent = `Done! Download all converted images as ZIP below.`;
         document.getElementById('download-selected-container').classList.remove('hidden');
       } else {
         downloadLink.style.display = 'none';
@@ -330,24 +345,25 @@
       }
     }
 
-    function showPreview(index, file, webpBlob, filename) {
+    function showPreview(index, file, blob, filename) {
       const tr = document.createElement('tr');
       const reader = new FileReader();
       reader.onload = function(e) {
-        let size = webpBlob.size;
+        let size = blob.size;
         let sizeStr = size < 1024*1024 ? (size/1024).toFixed(1) + ' KB' : (size/1024/1024).toFixed(2) + ' MB';
-        const downloadUrl = URL.createObjectURL(webpBlob);
+        const downloadUrl = URL.createObjectURL(blob);
         tr.innerHTML = `
           <td class="align-top py-2 px-2 sm:px-4"><input type="checkbox" class="select-image" data-index="${index}"></td>
           <td class="align-top py-2 px-2 sm:px-4">${index}</td>
           <td class="align-top py-2 px-2 sm:px-4"><img class="preview" src="${e.target.result}" alt="preview"></td>
           <td class="align-top py-2 px-2 sm:px-4 break-words whitespace-normal max-w-[180px] sm:max-w-xs">${file.name}</td>
+          <td class="align-top py-2 px-2 sm:px-4"><button class="rename-btn" data-index="${index}">Rename</button></td>
           <td class="align-top py-2 px-2 sm:px-4">${sizeStr}</td>
           <td class="align-top py-2 px-2 sm:px-4"><a href="${downloadUrl}" download="${filename}" class="download-btn text-blue-600 hover:underline">Download</a></td>
         `;
         previewTbody.appendChild(tr);
       };
-      reader.readAsDataURL(webpBlob);
+      reader.readAsDataURL(blob);
     }
 
     function showError(index, filename, err) {
@@ -362,7 +378,7 @@
       previewTbody.appendChild(tr);
     }
 
-    async function convertToWebP(file, maxW, maxH, quality) {
+    async function convertToFormat(file, maxW, maxH, quality, format) {
       return new Promise((resolve, reject) => {
         const img = new Image();
         img.onload = function() {
@@ -374,10 +390,14 @@
           canvas.height = nh;
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, nw, nh);
+          let mime = 'image/webp';
+          let ext = 'webp';
+          if (format === 'jpeg') { mime = 'image/jpeg'; ext = 'jpg'; }
+          else if (format === 'png') { mime = 'image/png'; ext = 'png'; }
           canvas.toBlob(blob => {
             if (!blob) reject(new Error('Conversion failed'));
-            else resolve(blob);
-          }, 'image/webp', quality);
+            else resolve({blob, filename: file.name.replace(/\.[^.]+$/, '') + '.' + ext});
+          }, mime, (format === 'png') ? undefined : quality);
         };
         img.onerror = reject;
         img.src = URL.createObjectURL(file);
@@ -416,6 +436,34 @@
       document.querySelectorAll('.select-image').forEach(cb => {
         cb.checked = checked;
       });
+    });
+
+    document.addEventListener('click', function(e) {
+      if (e.target.classList.contains('rename-btn')) {
+        const idx = parseInt(e.target.getAttribute('data-index'), 10);
+        const tr = e.target.closest('tr');
+        const fileObj = window._webpImages.find(img => img.index === idx);
+        if (!fileObj) return;
+        const td = e.target.parentElement;
+        td.innerHTML = `<input type='text' class='rename-input' value='${fileObj.filename.replace(/\.[^.]+$/, '')}' style='background:#172f37;color:#cde5da;border:1.5px solid #cde5da;width:110px;'> <button class='save-rename-btn' data-index='${idx}'>Save</button>`;
+      } else if (e.target.classList.contains('save-rename-btn')) {
+        const idx = parseInt(e.target.getAttribute('data-index'), 10);
+        const tr = e.target.closest('tr');
+        const fileObj = window._webpImages.find(img => img.index === idx);
+        if (!fileObj) return;
+        const input = tr.querySelector('.rename-input');
+        let newName = input.value.trim();
+        if (!newName) return;
+        // Update filename in memory
+        const ext = fileObj.filename.split('.').pop();
+        fileObj.filename = newName + '.' + ext;
+        // Update download link
+        const downloadLink = tr.querySelector('.download-btn');
+        downloadLink.setAttribute('download', fileObj.filename);
+        // Restore Rename button
+        e.target.parentElement.innerHTML = `<button class='rename-btn' data-index='${idx}'>Rename</button>`;
+        // Update original filename cell visually if you want (optional)
+      }
     });
   </script>
 </body>
