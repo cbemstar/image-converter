@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Image to WebP Converter</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    body {
+      font-family: inherit;
+      background-color:#172f37 !important; 
+    }
+    label, th, .font-medium, .text-blue-900, .text-gray-500, .text-lg, .text-sm, .text-base, .break-words, .whitespace-normal, .max-w-xs, .max-w-5xl, .text-center, .font-bold {
+      color: #cde5da !important;
+    }
+    #preview-table th, #preview-table td {
+      color: #cde5da !important;
+      background: transparent !important;
+    }
+    #preview-table thead tr {
+      background: transparent !important;
+    }
+    /* Input fields for Max Width, Max Height, Quality */
+    #max-width, #max-height, #quality {
+      background-color: #172f37 !important;
+      color: #cde5da !important;
+      border: 1.5px solid #cde5da !important;
+    }
+    #max-width:focus, #max-height:focus, #quality:focus {
+      outline: 2px solid #cde5da !important;
+      box-shadow: 0 0 0 2px #cde5da !important;
+    }
+    /* Select Images button */
+    #drop-area button {
+      background-color: #cde5da !important;
+      color: #172f37 !important;
+      border: 2px solid #cde5da !important;
+      box-sizing: border-box;
+      padding: 0.75rem 1.5rem;
+      transition: background 0.2s, color 0.2s, border-color 0.2s;
+    }
+    #drop-area button:hover {
+      background: transparent !important;
+      color: #cde5da !important;
+      border: 2px solid #cde5da !important;
+    }
+    .bg-blue-500, .bg-green-500, .bg-blue-600, .bg-green-600 {
+      background-color: #172f37 !important;
+      color: #cde5da !important;
+      border: none;
+    }
+    .bg-blue-500:hover, .bg-green-500:hover, .bg-blue-600:hover, .bg-green-600:hover {
+      background-color: #cde5da !important;
+      color: #172f37 !important;
+    }
+    .text-blue-700, .text-blue-600, .text-blue-500, .text-blue-100 {
+      color: #cde5da !important;
+    }
+    .shadow, .hover\:shadow-lg, .rounded, .border, .border-dashed, .border-blue-400 {
+      box-shadow: none !important;
+      border-color: #cde5da !important;
+    }
+    input, select, textarea {
+      color: #172f37 !important;
+      background-color: #cde5da !important;
+      border: 1px solid #cde5da !important;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: 2px solid #cde5da !important;
+      box-shadow: 0 0 0 2px #cde5da !important;
+    }
+    /* Remove white background and add border for controls */
+    #controls > div {
+      background: none !important;
+      border: 1.5px solid #cde5da !important;
+      color: #cde5da !important;
+    }
+    /* Remove white background and add border for drop area */
+    #drop-area {
+      background: none !important;
+      border: 2px dashed #cde5da !important;
+      color: #cde5da !important;
+    }
+    /* Table header bar: light background, dark text */
+    #preview-table thead th {
+      color: #cde5da !important;
+      font-weight: bold;
+    }
+    img.preview { max-width: 120px; max-height: 120px; border-radius: 6px; }
+    @media (max-width: 768px) {
+      .max-w-xs {
+        max-width: 90%;
+      }
+      #controls {
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem 1.5rem;
+      }
+      #controls > div {
+        width: auto;
+        justify-content: flex-start;
+        padding: 1rem 1.5rem;
+        gap: 0.75rem;
+      }
+      #controls input {
+        font-size: 1rem;
+        flex-shrink: 0;
+        width: fit-content;
+      }
+      #controls label {
+        min-width: fit-content;
+        flex-shrink: 0;
+      }
+      #controls span {
+        flex-shrink: 0;
+      }
+      #drop-area {
+        margin: 0 1rem;
+        padding: 2rem 1.5rem;
+      }
+      #drop-area p {
+        font-size: 1rem;
+      }
+      #drop-area button {
+        width: 100%;
+        max-width: 250px;
+        padding: 0.75rem 1.5rem;
+        font-size: 1rem;
+      }
+      .overflow-x-auto {
+        margin: 0 0.5rem;
+      }
+      #preview-table {
+        font-size: 0.875rem;
+      }
+      #preview-table th,
+      #preview-table td {
+        padding: 0.75rem 0.5rem;
+      }
+      img.preview {
+        max-width: 100px;
+        max-height: 100px;
+      }
+      .break-words {
+        word-break: break-all;
+      }
+    }
+    @media (max-width: 480px) {
+      h1 {
+        font-size: 1.75rem;
+        margin-top: 1rem;
+        margin-bottom: 1rem;
+      }
+      #controls > div {
+        max-width: 350px;
+        padding: 1.25rem 1rem;
+        gap: 0.5rem;
+      }
+      #controls input {
+        width: auto;
+        font-size: 0.95rem;
+      }
+      #controls label {
+        font-size: 0.95rem;
+        min-width: 80px;
+      }
+      #drop-area {
+        padding: 1.5rem 1rem;
+      }
+      #drop-area button {
+        max-width: 200px;
+        padding: 0.875rem 1.25rem;
+      }
+      #preview-table {
+        font-size: 0.8rem;
+      }
+      #preview-table th,
+      #preview-table td {
+        padding: 0.625rem 0.375rem;
+      }
+      img.preview {
+        max-width: 80px;
+        max-height: 80px;
+      }
+    }
+    @media (max-width: 360px) {
+      #controls > div {
+        max-width: 300px;
+        padding: 1rem 0.75rem;
+        gap: 0.375rem;
+      }
+      #controls input {
+        width: auto;
+        font-size: 0.9rem;
+      }
+      #controls label {
+        font-size: 0.9rem;
+        min-width: 70px;
+      }
+      img.preview {
+        max-width: 70px;
+        max-height: 70px;
+      }
+    }
+    /* Download All as ZIP and Download Selected buttons */
+    #download-link, #download-selected {
+      border: 2px solid #cde5da !important;
+      background: transparent !important;
+      color: #cde5da !important;
+      transition: background 0.2s, color 0.2s, border-color 0.2s;
+      margin: 0.5rem;
+      min-width: 180px;
+      text-align: center;
+      border-radius: 0.375rem !important;
+    }
+    #download-link:hover, #download-selected:hover {
+      background: #cde5da !important;
+      color: #172f37 !important;
+    }
+    /* Responsive button container */
+    .download-btns-responsive {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1rem;
+    }
+    @media (max-width: 600px) {
+      .download-btns-responsive {
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: stretch;
+      }
+      #download-link, #download-selected {
+        min-width: unset;
+        width: 100%;
+      }
+    }
+    /* Table download button */
+    .download-btn {
+      color: #cde5da !important;
+      border: 1.5px solid #cde5da !important;
+      background: transparent !important;
+      padding: 0.25rem 0.75rem;
+      border-radius: 0.375rem !important;
+      transition: background 0.2s, color 0.2s;
+      font-weight: 500;
+    }
+    .download-btn:hover {
+      background: #cde5da !important;
+      color: #172f37 !important;
+    }
+    /* Preview table: semi-transparent background for contrast */
+    #preview-table {
+      background: transparent !important;
+      color: #cde5da !important;
+      border: 2px solid #cde5da !important;
+      border-radius: 12px;
+    }
+    body.dark-bg #preview-table th, body.dark-bg #preview-table td {
+      color: #cde5da !important;
+    }
+    body.light-bg #preview-table th, body.light-bg #preview-table td {
+      color: #172f37 !important;
+    }
+    /* If you want to support a light page background, add this media query or class toggle as needed: */
+    /*
+    body.light-bg #preview-table {
+      background: rgba(23,47,55,0.85) !important;
+      color: #cde5da !important;
+    }
+    body.light-bg #preview-table th, body.light-bg #preview-table td {
+      color: #cde5da !important;
+    }
+    */
+    .preview-img-container {
+      position: relative;
+      display: inline-block;
+    }
+    .magnify-icon {
+      display: none;
+      position: absolute;
+      right: 6px;
+      bottom: 6px;
+      background: rgba(23,47,55,0.7);
+      border-radius: 50%;
+      padding: 4px;
+      cursor: pointer;
+      z-index: 2;
+      transition: opacity 0.2s;
+    }
+    .preview-img-container:hover .magnify-icon {
+      display: block;
+      opacity: 0.85;
+    }
+    .magnify-icon svg {
+      width: 20px;
+      height: 20px;
+      fill: #cde5da;
+      opacity: 0.8;
+    }
+    #image-modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(23,47,55,0.85);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+    }
+    #image-modal.active {
+      display: flex;
+    }
+    #image-modal img {
+      max-width: 90vw;
+      max-height: 90vh;
+      border-radius: 12px;
+      box-shadow: 0 4px 32px rgba(0,0,0,0.4);
+    }
+    #image-modal .close-modal {
+      position: absolute;
+      top: 24px;
+      right: 32px;
+      font-size: 2rem;
+      color: #cde5da;
+      cursor: pointer;
+      z-index: 10000;
+      background: none;
+      border: none;
+    }
+  </style>
+</head>
+<body class=" bg-transparent min-h-screen">
+  <h1 class="text-3xl font-bold text-center my-8" style="color: #cde5da;">Image Conversion Tool</h1>
+  <div style="text-align:center;margin-bottom:1rem;">
+    <label style="color:#cde5da;font-weight:600;">
+      <input type="checkbox" id="unrestricted-toggle" style="margin-right:0.5em;"> Unrestricted (Master) Mode
+    </label>
+    <span id="unrestricted-status" style="color:#7fd7c4;font-size:0.95em;margin-left:1em;"></span>
+  </div>
+  <div id="controls" class="flex flex-wrap justify-center gap-4 mb-8">
+    <div class="bg-white rounded shadow px-3 py-2 flex items-center gap-2">
+      <label for="max-width" class="font-medium">Max Width:</label>
+      <input id="max-width" type="number" min="1" max="99999" value="99999" class="w-20 border rounded px-2 py-1 text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300" />
+      <span class="text-gray-500">px</span>
+    </div>
+    <div class="bg-white rounded shadow px-3 py-2 flex items-center gap-2">
+      <label for="max-height" class="font-medium">Max Height:</label>
+      <input id="max-height" type="number" min="1" max="99999" value="99999" class="w-20 border rounded px-2 py-1 text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300" />
+      <span class="text-gray-500">px</span>
+    </div>
+    <div class="bg-white rounded shadow px-3 py-2 flex items-center gap-2">
+      <label for="quality" class="font-medium">Quality:</label>
+      <input id="quality" type="number" min="0.1" max="1" step="0.01" value="0.95" class="w-20 border rounded px-2 py-1 text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300" />
+      <span class="text-gray-500">(0.1 - 1)</span>
+    </div>
+  </div>
+  <div id="format-controls" class="flex justify-center mb-4">
+    <label for="output-format" class="font-medium mr-2">Output Format:</label>
+    <select id="output-format" class="border rounded px-2 py-1" style="background-color:#172f37;color:#cde5da;border:1.5px solid #cde5da;">
+      <option value="webp">WebP</option>
+      <option value="jpeg">JPEG</option>
+      <option value="png">PNG</option>
+    </select>
+  </div>
+  <div id="progress-status" class="text-center text-lg font-medium mb-2" style="color:#cde5da;"></div>
+  <div id="progress-bar-container" class="w-full max-w-2xl mx-auto mb-4" style="height:18px;background:none;border-radius:8px;">
+    <div id="progress-bar" style="height:100%;width:0;background:#cde5da;border-radius:8px;transition:width 0.3s;"></div>
+  </div>
+  <div id="quota-status" class="text-center text-base font-medium mb-2" style="color:#ffb347;"></div>
+  <div class="flex flex-col items-center mb-4">
+    <button id="upgrade-btn" class="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold px-4 py-2 rounded shadow transition-colors mb-0">Upgrade</button>
+    <!-- Stripe Pricing Table Accordion (now directly under Upgrade button) -->
+    <div id="stripe-accordion" style="display:none;width:100%;max-width:900px;min-width:320px;overflow-x:auto;background:#172f37;border-radius:14px;box-shadow:0 4px 24px rgba(0,0,0,0.18);padding:1.5rem 1rem 1rem 1rem;">
+      <div style="margin-bottom:1rem;text-align:center;color:#cde5da;font-size:1.2rem;font-weight:600;">Upgrade to Pro</div>
+      <script async src="https://js.stripe.com/v3/pricing-table.js"></script>
+      <stripe-pricing-table pricing-table-id="prctbl_1QwytqBcmaVSn6Z156zYdTHl"
+        publishable-key="pk_live_51LTgh8BcmaVSn6Z1nQkl0Xc2lFlcaFvaBabebmyJr4fWmZqVk37uI2JBUoY9otwUVqmN2Xol9ZOdcjOdcy8MqHbS00QLT2xZxw">
+      </stripe-pricing-table>
+    </div>
+  </div>
+  <div id="drop-area" class="border-2 border-dashed border-blue-400 rounded-lg p-8 text-center text-blue-500 mb-8 bg-white shadow hover:shadow-lg transition-shadow cursor-pointer max-w-2xl mx-auto px-4">
+    <p class="mb-4">Drag & drop your image files here</p>
+    <input type="file" id="fileElem" accept="image/*" multiple style="display:none">
+    <button onclick="fileElem.click()" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-6 py-2 rounded shadow transition-colors">Select Images</button>
+  </div>
+  <div class="download-btns-responsive mb-8">
+    <a id="download-link" href="#" download="converted_images.zip" class="hidden">Download All as ZIP</a>
+    <button id="download-selected" class="hidden">Download Selected</button>
+  </div>
+  <div class="flex justify-center mb-2">
+    <a href="#" id="show-bulk-rename" style="color:#7fd7c4;text-decoration:underline;cursor:pointer;">Bulk Rename Tool</a>
+  </div>
+  <div id="bulk-rename-controls" class="flex flex-wrap justify-center gap-2 mb-4" style="align-items:center; display:none;">
+    <input id="bulk-rename-base" type="text" placeholder="Base name (e.g. Image)" class="border rounded px-2 py-1" style="background-color:#172f37;color:#cde5da;border:1.5px solid #cde5da;" />
+    <input id="bulk-rename-start" type="number" min="1" value="1" class="border rounded px-2 py-1 w-20" style="background-color:#172f37;color:#cde5da;border:1.5px solid #cde5da;" />
+    <button id="bulk-rename-btn" style="background-color:#cde5da;color:#172f37;border-radius:0.375rem;padding:0.5rem 1.25rem;border:none;font-weight:600;">Bulk Rename</button>
+  </div>
+  <div class="flex justify-center mb-4">
+    <button id="convert-images-btn" class="hidden bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-2 rounded shadow transition-colors">Convert All Images</button>
+  </div>
+  <div class="overflow-x-auto max-w-5xl mx-auto px-2 sm:px-4 min-w-0">
+    <table id="preview-table" class="min-w-full w-full mb-8 text-sm sm:text-base table-auto" style="background: transparent; display: none;">
+      <thead>
+        <tr class="bg-blue-100 text-blue-900">
+          <th class="py-2 px-2 sm:px-4"><input type="checkbox" id="select-all"></th>
+          <th class="py-2 px-2 sm:px-4">#</th>
+          <th class="py-2 px-2 sm:px-4">Preview</th>
+          <th class="py-2 px-2 sm:px-4">Original Filename</th>
+          <th class="py-2 px-2 sm:px-4">Rename</th>
+          <th class="py-2 px-2 sm:px-4">WebP Size</th>
+          <th class="py-2 px-2 sm:px-4">Download</th>
+          <th class="py-2 px-2 sm:px-4">Convert</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <!-- Modal for image preview -->
+  <div id="image-modal">
+    <button class="close-modal" aria-label="Close">&times;</button>
+    <img src="" alt="Preview" />
+  </div>
+  <script>
+    const dropArea = document.getElementById('drop-area');
+    const fileElem = document.getElementById('fileElem');
+    const progress = document.getElementById('progress');
+    const downloadLink = document.getElementById('download-link');
+    const previewTable = document.getElementById('preview-table');
+    const previewTbody = previewTable.querySelector('tbody');
+    // --- Supabase config (replace with your own project keys) ---
+    const SUPABASE_URL = 'https://ggadqklbeiyccnqzwiac.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdnYWRxa2xiZWl5Y2NucXp3aWFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE3ODMwMjQsImV4cCI6MjA2NzM1OTAyNH0.w7PNMVWoyP514d55j1g-yE4aZG7QP_1BfyCT8fphQEY';
+    // Get input elements for user-configurable options
+    const maxWidthInput = document.getElementById('max-width');
+    const maxHeightInput = document.getElementById('max-height');
+    const qualityInput = document.getElementById('quality');
+    const outputFormatInput = document.getElementById('output-format');
+    const progressStatus = document.getElementById('progress-status');
+    const progressBar = document.getElementById('progress-bar');
+
+    // Modal elements for image preview
+    const imageModal = document.getElementById('image-modal');
+    const modalImg = imageModal.querySelector('img');
+
+    // Store selected files for conversion
+    let _selectedFiles = [];
+    let unrestrictedMode = false;
+    document.getElementById('unrestricted-toggle').addEventListener('change', function(e) {
+      unrestrictedMode = e.target.checked;
+      document.getElementById('unrestricted-status').textContent = unrestrictedMode ? 'Unrestricted mode enabled: No quota or file size limits.' : '';
+      updateQuotaStatus();
+    });
+
+    dropArea.addEventListener('dragover', e => {
+      e.preventDefault();
+      dropArea.style.borderColor = '#333';
+    });
+    dropArea.addEventListener('dragleave', e => {
+      e.preventDefault();
+      dropArea.style.borderColor = '#888';
+    });
+    dropArea.addEventListener('drop', e => {
+      e.preventDefault();
+      dropArea.style.borderColor = '#888';
+      handleFiles(e.dataTransfer.files);
+    });
+    fileElem.addEventListener('change', e => {
+      handleFiles(e.target.files);
+    });
+
+    function getQuotaInfo() {
+      const now = Date.now();
+      let quota = JSON.parse(localStorage.getItem('imgQuota') || '{}');
+      if (!quota.start || now - quota.start > 24*60*60*1000) {
+        quota = { start: now, used: 0 };
+        localStorage.setItem('imgQuota', JSON.stringify(quota));
+      }
+      return quota;
+    }
+    function setQuotaInfo(quota) {
+      localStorage.setItem('imgQuota', JSON.stringify(quota));
+    }
+    function updateQuotaStatus() {
+      const quota = getQuotaInfo();
+      const left = Math.max(0, 10 - quota.used);
+      document.getElementById('quota-status').textContent = `Free quota: ${left} of 10 images left (resets in ${Math.ceil((24*60*60*1000 - (Date.now() - quota.start))/3600000)}h)`;
+      // Show upgrade button if quota is low or zero
+      document.getElementById('upgrade-btn').style.display = (left <= 2) ? 'inline-block' : 'none';
+    }
+    function canProcessImages(num, files) {
+      const quota = getQuotaInfo();
+      if (quota.used >= 10) return false;
+      let valid = 0;
+      for (let i = 0; i < files.length; i++) {
+        if (files[i].size <= 5*1024*1024) valid++;
+      }
+      return Math.min(valid, 10 - quota.used);
+    }
+    function handleFiles(files) {
+      if (!files.length) return;
+      const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+      if (!imageFiles.length) {
+        alert('Please select image files only.');
+        return;
+      }
+      if (unrestrictedMode) {
+        _selectedFiles = imageFiles;
+      } else {
+        const quota = getQuotaInfo();
+        if (quota.used >= 10) {
+          progressStatus.textContent = '';
+          progressBar.style.width = '0';
+          updateQuotaStatus();
+          toggleStripeAccordion(true);
+          return;
+        }
+        // Allow up to 25MB for in-browser, >25MB for Supabase
+        const validFiles = imageFiles.filter(f => f.size <= 100*1024*1024); // allow up to 100MB for pro, but hybrid logic will route
+        let canProcess = Math.min(validFiles.length, 10 - quota.used);
+        if (imageFiles.length > 10 || validFiles.length > 10 || canProcess < validFiles.length) {
+          alert('You selected more than 10 images. Only the first 10 within your quota will be processed.');
+        }
+        if (canProcess === 0) {
+          alert('No images can be processed (quota or size limit).');
+          updateQuotaStatus();
+          return;
+        }
+        _selectedFiles = validFiles.slice(0, canProcess);
+      }
+      // Show previews only (no conversion yet)
+      previewTbody.innerHTML = '';
+      previewTable.style.display = 'table';
+      _selectedFiles.forEach((file, i) => {
+        // Show preview with placeholder for size/converted info and individual convert button
+        const tr = document.createElement('tr');
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          tr.innerHTML = `
+            <td class="align-top py-2 px-2 sm:px-4"><input type="checkbox" class="select-image" data-index="${i+1}" checked></td>
+            <td class="align-top py-2 px-2 sm:px-4">${i+1}</td>
+            <td class="align-top py-2 px-2 sm:px-4">
+              <span class="preview-img-container">
+                <img class="preview" src="${e.target.result}" alt="preview">
+              </span>
+            </td>
+            <td class="align-top py-2 px-2 sm:px-4 break-words whitespace-normal max-w-[180px] sm:max-w-xs">${file.name}</td>
+            <td class="align-top py-2 px-2 sm:px-4"><button class="rename-btn" data-index="${i+1}">Rename</button></td>
+            <td class="align-top py-2 px-2 sm:px-4">-</td>
+            <td class="align-top py-2 px-2 sm:px-4">-</td>
+            <td class="align-top py-2 px-2 sm:px-4"><button class="convert-single-btn" data-index="${i+1}">Convert</button></td>
+          `;
+          previewTbody.appendChild(tr);
+        };
+        reader.readAsDataURL(file);
+      });
+      // Show convert all button
+      document.getElementById('convert-images-btn').classList.remove('hidden');
+    }
+
+    // --- HYBRID LOGIC: WebWorker for small files, Supabase upload for large files ---
+    // WebWorker setup
+    let imageWorker = null;
+    function getImageWorker() {
+      if (!imageWorker) {
+        const workerBlob = new Blob([
+          `onmessage = async function(e) {
+            const { file, maxW, maxH, quality, format } = e.data;
+            function sendError(msg) {
+              self.postMessage({ error: msg });
+            }
+            try {
+              const img = new Image();
+              img.onload = function() {
+                let [w, h] = [img.width, img.height];
+                let scale = Math.min(maxW / w, maxH / h, 1);
+                let nw = Math.round(w * scale), nh = Math.round(h * scale);
+                let canvas, ctx;
+                if (typeof OffscreenCanvas !== 'undefined') {
+                  canvas = new OffscreenCanvas(nw, nh);
+                  ctx = canvas.getContext('2d');
+                } else {
+                  canvas = self.document ? self.document.createElement('canvas') : null;
+                  if (!canvas) {
+                    // fallback: create canvas via OffscreenCanvas polyfill
+                    sendError('Canvas not supported in this environment.');
+                    return;
+                  }
+                  canvas.width = nw;
+                  canvas.height = nh;
+                  ctx = canvas.getContext('2d');
+                }
+                ctx.drawImage(img, 0, 0, nw, nh);
+                let mime = 'image/webp';
+                let ext = 'webp';
+                if (format === 'jpeg') { mime = 'image/jpeg'; ext = 'jpg'; }
+                else if (format === 'png') { mime = 'image/png'; ext = 'png'; }
+                if (canvas.convertToBlob) {
+                  canvas.convertToBlob({ type: mime, quality: (format === 'png') ? undefined : quality }).then(blob => {
+                    self.postMessage({ blob, filename: file.name.replace(/\.[^.]+$/, '') + '.' + ext }, [blob]);
+                  }).catch(err => {
+                    sendError('convertToBlob failed: ' + err.message);
+                  });
+                } else if (canvas.toBlob) {
+                  canvas.toBlob(function(blob) {
+                    if (!blob) sendError('Conversion failed');
+                    else self.postMessage({ blob, filename: file.name.replace(/\.[^.]+$/, '') + '.' + ext }, [blob]);
+                  }, mime, (format === 'png') ? undefined : quality);
+                } else {
+                  sendError('No supported canvas toBlob method.');
+                }
+              };
+              img.onerror = function() {
+                sendError('Image load failed');
+              };
+              img.src = URL.createObjectURL(file);
+            } catch (err) {
+              sendError('Worker error: ' + err.message);
+            }
+          }`
+        ], { type: 'application/javascript' });
+        imageWorker = new Worker(URL.createObjectURL(workerBlob));
+      }
+      return imageWorker;
+    }
+
+    // Chunked upload to Supabase Edge Function for large files
+    async function uploadLargeFileToSupabase(file, maxW, maxH, quality, format, onProgress) {
+      const chunkSize = 5 * 1024 * 1024; // 5MB per chunk
+      const totalChunks = Math.ceil(file.size / chunkSize);
+      let uploaded = 0;
+      for (let i = 0; i < totalChunks; i++) {
+        const chunk = file.slice(i * chunkSize, (i + 1) * chunkSize);
+        const formData = new FormData();
+        formData.append('chunk', chunk);
+        formData.append('chunkIndex', i);
+        formData.append('totalChunks', totalChunks);
+        formData.append('filename', file.name);
+        await fetch(`${SUPABASE_URL}/functions/v1/image-chunk-upload`, {
+          method: 'POST',
+          body: formData,
+          headers: {
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`
+          }
+        });
+        uploaded += chunk.size;
+        if (onProgress) onProgress(Math.min(uploaded / file.size, 1));
+      }
+      // Build query params, *including* totalChunks so the edge function
+      // can verify completeness before assembling.
+      const params = new URLSearchParams({
+        filename: file.name,
+        maxW,
+        maxH,
+        quality,
+        format,
+        totalChunks: totalChunks.toString()
+      });
+
+      // Retry /convert until all chunks are visible (edge returns 409)
+      let resp, attempt = 0;
+      const maxAttempts = 10;               // ≈10‑second worst‑case (exponential)
+      while (attempt < maxAttempts) {
+        resp = await fetch(
+          `${SUPABASE_URL}/functions/v1/image-chunk-upload/convert?${params.toString()}`,
+          {
+            headers: {
+              apikey: SUPABASE_ANON_KEY,
+              Authorization: `Bearer ${SUPABASE_ANON_KEY}`
+            }
+          }
+        );
+
+        if (resp.status !== 409) break;     // 200 = ready, any other ≠409 handled below
+        // 409 means “chunks not complete yet” ➜ wait then retry
+        await new Promise(r => setTimeout(r, 1000 * (attempt + 1))); // 1s,2s,… 
+        attempt++;
+      }
+
+      if (!resp.ok) {
+        throw new Error(`Server conversion failed (status ${resp.status})`);
+      }
+
+      const blob = await resp.blob();
+      return blob;
+    }
+
+    // Main conversion logic
+    async function hybridConvert(file, maxW, maxH, quality, format, onProgress) {
+      if (file.size <= 25 * 1024 * 1024) {
+        // In-browser conversion on main thread using hidden canvas
+        return new Promise((resolve, reject) => {
+          const img = new window.Image();
+          img.onload = function() {
+            let [w, h] = [img.width, img.height];
+            let scale = Math.min(maxW / w, maxH / h, 1);
+            let nw = Math.round(w * scale), nh = Math.round(h * scale);
+            let canvas = document.createElement('canvas');
+            canvas.width = nw;
+            canvas.height = nh;
+            let ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, nw, nh);
+            let mime = 'image/webp';
+            let ext = 'webp';
+            if (format === 'jpeg') { mime = 'image/jpeg'; ext = 'jpg'; }
+            else if (format === 'png') { mime = 'image/png'; ext = 'png'; }
+            canvas.toBlob(function(blob) {
+              if (!blob) reject(new Error('Conversion failed'));
+              else resolve({ blob, filename: file.name.replace(/\.[^.]+$/, '') + '.' + ext });
+            }, mime, (format === 'png') ? undefined : quality);
+          };
+          img.onerror = function() { reject(new Error('Image load failed')); };
+          img.src = URL.createObjectURL(file);
+        });
+      } else {
+        // Use Supabase for large files
+        const blob = await uploadLargeFileToSupabase(file, maxW, maxH, quality, format, onProgress);
+        return { blob, filename: file.name.replace(/\.[^.]+$/, '') + '.' + format };
+      }
+    }
+
+    async function processImages(files, maxW, maxH, quality, format) {
+      const zip = new JSZip();
+      let processed = 0;
+      window._webpImages = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        try {
+          const {blob, filename} = await hybridConvert(file, maxW, maxH, quality, format, (progress) => {
+            progressStatus.textContent = `Processing ${files.length} images. (${processed}/${files.length})`;
+            progressBar.style.width = `${progress * 100}%`;
+          });
+          zip.file(filename, blob);
+          showPreview(i + 1, file, blob, filename);
+          window._webpImages.push({index: i + 1, file, webpBlob: blob, filename});
+        } catch (err) {
+          showError(i + 1, file.name, err);
+        }
+        processed++;
+      }
+      progressStatus.textContent = `Done! Processed ${files.length} images.`;
+      progressBar.style.width = '100%';
+      if (files.length > 1) {
+        const zipBlob = await zip.generateAsync({type: 'blob'});
+        downloadLink.href = URL.createObjectURL(zipBlob);
+        downloadLink.style.display = 'inline-block';
+        document.getElementById('download-selected').classList.remove('hidden');
+      } else {
+        downloadLink.style.display = 'none';
+        document.getElementById('download-selected').classList.add('hidden');
+      }
+    }
+
+    function showPreview(index, file, blob, filename) {
+      const tr = document.createElement('tr');
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        let size = blob.size;
+        let sizeStr = size < 1024*1024 ? (size/1024).toFixed(1) + ' KB' : (size/1024/1024).toFixed(2) + ' MB';
+        const downloadUrl = URL.createObjectURL(blob);
+        tr.innerHTML = `
+          <td class="align-top py-2 px-2 sm:px-4"><input type="checkbox" class="select-image" data-index="${index}"></td>
+          <td class="align-top py-2 px-2 sm:px-4">${index}</td>
+          <td class="align-top py-2 px-2 sm:px-4">
+            <span class="preview-img-container">
+              <img class="preview" src="${e.target.result}" alt="preview">
+              <span class="magnify-icon" data-img="${e.target.result}">
+                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="#cde5da" stroke-width="2" fill="none"/><line x1="16.5" y1="16.5" x2="21" y2="21" stroke="#cde5da" stroke-width="2"/></svg>
+              </span>
+            </span>
+          </td>
+          <td class="align-top py-2 px-2 sm:px-4 break-words whitespace-normal max-w-[180px] sm:max-w-xs">${file.name}</td>
+          <td class="align-top py-2 px-2 sm:px-4"><button class="rename-btn" data-index="${index}">Rename</button></td>
+          <td class="align-top py-2 px-2 sm:px-4">${sizeStr}</td>
+          <td class="align-top py-2 px-2 sm:px-4"><a href="${downloadUrl}" download="${filename}" class="download-btn">Download</a></td>
+        `;
+        previewTbody.appendChild(tr);
+      };
+      reader.readAsDataURL(blob);
+    }
+
+    function showError(index, filename, err) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="align-top py-2 px-2 sm:px-4">${index}</td>
+        <td class="align-top py-2 px-2 sm:px-4" style="color:red;">Failed: ${err && err.message ? err.message : err}</td>
+        <td class="align-top py-2 px-2 sm:px-4">${filename}</td>
+        <td class="align-top py-2 px-2 sm:px-4"></td>
+        <td class="align-top py-2 px-2 sm:px-4"></td>
+      `;
+      previewTbody.appendChild(tr);
+    }
+
+    // Download selected images as ZIP
+    document.getElementById('download-selected').addEventListener('click', async function() {
+      const checkboxes = document.querySelectorAll('.select-image:checked');
+      if (!window._webpImages || checkboxes.length === 0) {
+        alert('Please select at least one image.');
+        return;
+      }
+      const zip = new JSZip();
+      checkboxes.forEach(cb => {
+        const idx = parseInt(cb.getAttribute('data-index'), 10);
+        const img = window._webpImages.find(img => img.index === idx);
+        if (img) zip.file(img.filename, img.webpBlob);
+      });
+      const zipBlob = await zip.generateAsync({type: 'blob'});
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'selected_images.zip';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 100);
+    });
+
+    // Select all checkbox
+    document.getElementById('select-all').addEventListener('change', function(e) {
+      const checked = e.target.checked;
+      document.querySelectorAll('.select-image').forEach(cb => {
+        cb.checked = checked;
+      });
+    });
+
+    previewTbody.addEventListener('click', function(e) {
+      // Rename button
+      if (e.target.classList.contains('rename-btn')) {
+        const idx = parseInt(e.target.getAttribute('data-index'), 10) - 1;
+        const tr = e.target.closest('tr');
+        const fileObj = _selectedFiles[idx];
+        if (!fileObj) return;
+        const td = e.target.parentElement;
+        // Use current filename (without extension) for input value
+        let currentName = fileObj.filename ? fileObj.filename.replace(/\.[^.]+$/, '') : fileObj.name.replace(/\.[^.]+$/, '');
+        td.innerHTML = `<input type='text' class='rename-input' value='${currentName}' style='background:#172f37;color:#cde5da;border:1.5px solid #cde5da;width:110px;'> <button class='save-rename-btn' data-index='${idx+1}'>Save</button>`;
+      } else if (e.target.classList.contains('save-rename-btn')) {
+        const idx = parseInt(e.target.getAttribute('data-index'), 10) - 1;
+        const tr = e.target.closest('tr');
+        const fileObj = _selectedFiles[idx];
+        if (!fileObj) return;
+        const input = tr.querySelector('.rename-input');
+        let newName = input.value.trim();
+        if (!newName) return;
+        // Update filename in memory
+        const ext = (fileObj.filename || fileObj.name).split('.').pop();
+        fileObj.filename = newName + '.' + ext;
+        // Update displayed filename in the table
+        const filenameTd = tr.querySelector('td:nth-child(4)');
+        if (filenameTd) filenameTd.textContent = fileObj.filename;
+        // Update download link if present
+        const downloadLink = tr.querySelector('.download-btn');
+        if (downloadLink) downloadLink.setAttribute('download', fileObj.filename);
+        // Restore Rename button
+        e.target.parentElement.innerHTML = `<button class='rename-btn' data-index='${idx+1}'>Rename</button>`;
+      } else if (e.target.closest('.magnify-icon')) {
+        const imgSrc = e.target.closest('.magnify-icon').getAttribute('data-img');
+        modalImg.src = imgSrc;
+        imageModal.classList.add('active');
+      } else if (e.target.classList.contains('close-modal') || (e.target === imageModal)) {
+        imageModal.classList.remove('active');
+        modalImg.src = '';
+      }
+    });
+
+    function sendHeightToParent() {
+      if (window.parent) {
+        window.parent.postMessage(
+          { type: 'setIframeHeight', height: document.body.scrollHeight },
+          '*'
+        );
+      }
+    }
+    // Observe DOM changes and send height to parent
+    const resizeObserver = new MutationObserver(sendHeightToParent);
+    resizeObserver.observe(document.body, { childList: true, subtree: true });
+    // Also send height on load and resize
+    window.addEventListener('load', sendHeightToParent);
+    window.addEventListener('resize', sendHeightToParent);
+
+    document.getElementById('bulk-rename-btn').addEventListener('click', function() {
+      const base = document.getElementById('bulk-rename-base').value.trim();
+      let start = parseInt(document.getElementById('bulk-rename-start').value, 10);
+      if (!base || isNaN(start)) return;
+      if (!_selectedFiles || !_selectedFiles.length) return;
+      _selectedFiles.forEach((img, i) => {
+        const ext = (img.filename || img.name).split('.').pop();
+        img.filename = `${base}${start + i}.${ext}`;
+        // Update table row
+        const tr = document.querySelector(`#preview-table tbody tr:nth-child(${i+1})`);
+        if (tr) {
+          // Update filename cell
+          const filenameTd = tr.querySelector('td:nth-child(4)');
+          if (filenameTd) filenameTd.textContent = img.filename;
+          // Update download link if present
+          const downloadLink = tr.querySelector('.download-btn');
+          if (downloadLink) downloadLink.setAttribute('download', img.filename);
+        }
+      });
+    });
+
+    // Show/hide bulk rename controls
+    document.getElementById('show-bulk-rename').addEventListener('click', function(e) {
+      e.preventDefault();
+      const controls = document.getElementById('bulk-rename-controls');
+      controls.style.display = controls.style.display === 'none' ? 'flex' : 'none';
+    });
+
+    // Individual convert button logic
+    previewTbody.addEventListener('click', async function(e) {
+      if (e.target.classList.contains('convert-single-btn')) {
+        const idx = parseInt(e.target.getAttribute('data-index'), 10) - 1;
+        const file = _selectedFiles[idx];
+        if (!file) return;
+        if (!unrestrictedMode) {
+          // Quota enforcement
+          const quota = getQuotaInfo();
+          if (quota.used >= 10) {
+            alert('Free quota reached! Upgrade to process more images.');
+            updateQuotaStatus();
+            return;
+          }
+          // Only allow if file is <= 100MB (hybrid logic will route)
+          if (file.size > 100*1024*1024) {
+            alert('File is over 100MB (limit).');
+            return;
+          }
+          // Update quota
+          quota.used += 1;
+          setQuotaInfo(quota);
+          updateQuotaStatus();
+        }
+        // Convert just this file
+        let maxW = parseInt(maxWidthInput.value, 10);
+        let maxH = parseInt(maxHeightInput.value, 10);
+        let quality = parseFloat(qualityInput.value);
+        if (isNaN(maxW) || maxW < 1 || maxW > 99999) maxW = 99999;
+        if (isNaN(maxH) || maxH < 1 || maxH > 99999) maxH = 9999;
+        if (isNaN(quality) || quality < 0.1 || quality > 1) quality = 0.95;
+        // Show progress for this row
+        const tr = e.target.closest('tr');
+        if (tr) {
+          tr.querySelectorAll('td')[5].textContent = 'Processing...';
+          tr.querySelectorAll('td')[6].textContent = '-';
+        }
+        try {
+          const {blob, filename} = await hybridConvert(file, maxW, maxH, quality, outputFormatInput.value, (progress) => {
+            if (tr) {
+              tr.querySelectorAll('td')[5].textContent = 'Processing...';
+              tr.querySelectorAll('td')[6].textContent = '-';
+            }
+          });
+          // Show size and download link
+          let size = blob.size;
+          let sizeStr = size < 1024*1024 ? (size/1024).toFixed(1) + ' KB' : (size/1024/1024).toFixed(2) + ' MB';
+          const downloadUrl = URL.createObjectURL(blob);
+          if (tr) {
+            tr.querySelectorAll('td')[5].textContent = sizeStr;
+            tr.querySelectorAll('td')[6].innerHTML = `<a href="${downloadUrl}" download="${filename}" class="download-btn">Download</a>`;
+          }
+        } catch (err) {
+          if (tr) {
+            tr.querySelectorAll('td')[5].textContent = 'Failed: ' + (err && err.message ? err.message : err);
+            tr.querySelectorAll('td')[6].textContent = '-';
+          }
+        }
+      }
+    });
+
+    // Convert All Images button logic
+    document.getElementById('convert-images-btn').addEventListener('click', async function() {
+      if (!_selectedFiles || !_selectedFiles.length) {
+        alert('No images selected for conversion.');
+        return;
+      }
+      let maxW = parseInt(maxWidthInput.value, 10);
+      let maxH = parseInt(maxHeightInput.value, 10);
+      let quality = parseFloat(qualityInput.value);
+      if (isNaN(maxW) || maxW < 1 || maxW > 99999) maxW = 99999;
+      if (isNaN(maxH) || maxH < 1 || maxH > 99999) maxH = 9999;
+      if (isNaN(quality) || quality < 0.1 || quality > 1) quality = 0.95;
+      let quota = getQuotaInfo();
+      let canProcess = Math.min(_selectedFiles.length, 10 - quota.used);
+      if (quota.used >= 10 || canProcess === 0) {
+        alert('Free quota reached! Upgrade to process more images.');
+        updateQuotaStatus();
+        return;
+      }
+      // Only process checked images
+      const checkedIndexes = Array.from(document.querySelectorAll('.select-image:checked')).map(cb => parseInt(cb.getAttribute('data-index'), 10) - 1);
+      let filesToProcess = checkedIndexes.map(idx => _selectedFiles[idx]).filter(Boolean);
+      if (!filesToProcess.length) {
+        alert('No images selected for conversion.');
+        return;
+      }
+      if (filesToProcess.length > canProcess) {
+        alert(`Only ${canProcess} images will be processed due to quota.`);
+        filesToProcess = filesToProcess.slice(0, canProcess);
+      }
+      // Hide convert all button
+      document.getElementById('convert-images-btn').classList.add('hidden');
+      // For each file, process and update row
+      for (let i = 0; i < filesToProcess.length; i++) {
+        const file = filesToProcess[i];
+        // Find the row for this file
+        const tr = previewTbody.querySelector(`tr:nth-child(${checkedIndexes[i]+1})`);
+        if (!file || !tr) continue;
+        // Skip if already converted (download link present)
+        if (tr.querySelector('.download-btn')) continue;
+        // Quota enforcement per image
+        quota = getQuotaInfo();
+        if (quota.used >= 10) {
+          alert('Free quota reached during batch. Some images were not converted.');
+          updateQuotaStatus();
+          break;
+        }
+        if (file.size > 100*1024*1024) {
+          if (tr) tr.querySelectorAll('td')[5].textContent = 'Too large';
+          continue;
+        }
+        // Show progress for this row
+        if (tr) {
+          tr.querySelectorAll('td')[5].textContent = 'Processing...';
+          tr.querySelectorAll('td')[6].textContent = '-';
+        }
+        try {
+          const {blob, filename} = await hybridConvert(file, maxW, maxH, quality, outputFormatInput.value, (progress) => {
+            if (tr) {
+              tr.querySelectorAll('td')[5].textContent = 'Processing...';
+              tr.querySelectorAll('td')[6].textContent = '-';
+            }
+          });
+          // Show size and download link
+          let size = blob.size;
+          let sizeStr = size < 1024*1024 ? (size/1024).toFixed(1) + ' KB' : (size/1024/1024).toFixed(2) + ' MB';
+          const downloadUrl = URL.createObjectURL(blob);
+          if (tr) {
+            tr.querySelectorAll('td')[5].textContent = sizeStr;
+            tr.querySelectorAll('td')[6].innerHTML = `<a href="${downloadUrl}" download="${filename}" class="download-btn">Download</a>`;
+          }
+          // Update quota
+          quota.used += 1;
+          setQuotaInfo(quota);
+          updateQuotaStatus();
+        } catch (err) {
+          if (tr) {
+            tr.querySelectorAll('td')[5].textContent = 'Failed: ' + (err && err.message ? err.message : err);
+            tr.querySelectorAll('td')[6].textContent = '-';
+          }
+        }
+      }
+    });
+
+    // On load, show quota status
+    updateQuotaStatus();
+
+    // Stripe accordion logic
+    function toggleStripeAccordion(forceOpen) {
+      const acc = document.getElementById('stripe-accordion');
+      if (forceOpen === true) {
+        acc.style.display = 'block';
+        acc.scrollIntoView({behavior:'smooth', block:'center'});
+        return;
+      }
+      if (acc.style.display === 'none') {
+        acc.style.display = 'block';
+        acc.scrollIntoView({behavior:'smooth', block:'center'});
+      } else {
+        acc.style.display = 'none';
+      }
+    }
+    document.getElementById('upgrade-btn').addEventListener('click', () => toggleStripeAccordion());
+  </script>
+</body>
+</html>
