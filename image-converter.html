@@ -5,6 +5,9 @@
   <title>Image to WebP Converter</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/avif.js@1.0.2/dist/avif.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.3/dist/heic2any.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/raw-wasm@1.0.0/dist/raw-wasm.min.js"></script>
   <style>
     body {
       font-family: inherit;
@@ -328,16 +331,25 @@
       background: none;
       border: none;
     }
+    #convert-images-btn {
+      background-color: #cde5da !important;
+      color: #172f37 !important;
+      border: 2px solid #cde5da !important;
+      box-sizing: border-box;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.375rem !important;
+      font-weight: 600;
+      transition: background 0.2s, color 0.2s, border-color 0.2s;
+    }
+    #convert-images-btn:hover {
+      background: transparent !important;
+      color: #cde5da !important;
+      border: 2px solid #cde5da !important;
+    }
   </style>
 </head>
 <body class=" bg-transparent min-h-screen">
   <h1 class="text-3xl font-bold text-center my-8" style="color: #cde5da;">Image Conversion Tool</h1>
-  <div style="text-align:center;margin-bottom:1rem;">
-    <label style="color:#cde5da;font-weight:600;">
-      <input type="checkbox" id="unrestricted-toggle" style="margin-right:0.5em;"> Unrestricted (Master) Mode
-    </label>
-    <span id="unrestricted-status" style="color:#7fd7c4;font-size:0.95em;margin-left:1em;"></span>
-  </div>
   <div id="controls" class="flex flex-wrap justify-center gap-4 mb-8">
     <div class="bg-white rounded shadow px-3 py-2 flex items-center gap-2">
       <label for="max-width" class="font-medium">Max Width:</label>
@@ -361,8 +373,14 @@
       <option value="webp">WebP</option>
       <option value="jpeg">JPEG</option>
       <option value="png">PNG</option>
+      <option value="avif">AVIF</option>
+      <option value="bmp">BMP</option>
+      <option value="tiff">TIFF</option>
+      <option value="gif">GIF</option>
+      <option value="ico">ICO</option>
     </select>
   </div>
+  <div id="format-options" class="flex justify-center gap-4 mb-4" style="display:none;"></div>
   <div id="progress-status" class="text-center text-lg font-medium mb-2" style="color:#cde5da;"></div>
   <div id="progress-bar-container" class="w-full max-w-2xl mx-auto mb-4" style="height:18px;background:none;border-radius:8px;">
     <div id="progress-bar" style="height:100%;width:0;background:#cde5da;border-radius:8px;transition:width 0.3s;"></div>
@@ -397,7 +415,7 @@
     <button id="bulk-rename-btn" style="background-color:#cde5da;color:#172f37;border-radius:0.375rem;padding:0.5rem 1.25rem;border:none;font-weight:600;">Bulk Rename</button>
   </div>
   <div class="flex justify-center mb-4">
-    <button id="convert-images-btn" class="hidden bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-2 rounded shadow transition-colors">Convert All Images</button>
+    <button id="convert-images-btn" class="hidden">Convert All Images</button>
   </div>
   <div class="overflow-x-auto max-w-5xl mx-auto px-2 sm:px-4 min-w-0">
     <table id="preview-table" class="min-w-full w-full mb-8 text-sm sm:text-base table-auto" style="background: transparent; display: none;">
@@ -445,12 +463,6 @@
 
     // Store selected files for conversion
     let _selectedFiles = [];
-    let unrestrictedMode = false;
-    document.getElementById('unrestricted-toggle').addEventListener('change', function(e) {
-      unrestrictedMode = e.target.checked;
-      document.getElementById('unrestricted-status').textContent = unrestrictedMode ? 'Unrestricted mode enabled: No quota or file size limits.' : '';
-      updateQuotaStatus();
-    });
 
     dropArea.addEventListener('dragover', e => {
       e.preventDefault();
@@ -497,6 +509,30 @@
       }
       return Math.min(valid, 10 - quota.used);
     }
+    function isAvif(file) {
+      return file.type === 'image/avif' || file.name.toLowerCase().endsWith('.avif');
+    }
+    function isHeic(file) {
+      return file.type === 'image/heic' || file.type === 'image/heif' || /\.(heic|heif)$/i.test(file.name);
+    }
+    function isRaw(file) {
+      return /\.(cr2|nef|arw|dng|raf|orf|rw2|pef|srw|raw)$/i.test(file.name);
+    }
+    function isTiff(file) {
+      return file.type === 'image/tiff' || /\.(tif|tiff)$/i.test(file.name);
+    }
+    function isBmp(file) {
+      return file.type === 'image/bmp' || file.name.toLowerCase().endsWith('.bmp');
+    }
+    function isGif(file) {
+      return file.type === 'image/gif' || file.name.toLowerCase().endsWith('.gif');
+    }
+    function isSvg(file) {
+      return file.type === 'image/svg+xml' || file.name.toLowerCase().endsWith('.svg');
+    }
+    function isIco(file) {
+      return file.type === 'image/x-icon' || file.name.toLowerCase().endsWith('.ico');
+    }
     function handleFiles(files) {
       if (!files.length) return;
       const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
@@ -504,30 +540,26 @@
         alert('Please select image files only.');
         return;
       }
-      if (unrestrictedMode) {
-        _selectedFiles = imageFiles;
-      } else {
-        const quota = getQuotaInfo();
-        if (quota.used >= 10) {
-          progressStatus.textContent = '';
-          progressBar.style.width = '0';
-          updateQuotaStatus();
-          toggleStripeAccordion(true);
-          return;
-        }
-        // Allow up to 25MB for in-browser, >25MB for Supabase
-        const validFiles = imageFiles.filter(f => f.size <= 100*1024*1024); // allow up to 100MB for pro, but hybrid logic will route
-        let canProcess = Math.min(validFiles.length, 10 - quota.used);
-        if (imageFiles.length > 10 || validFiles.length > 10 || canProcess < validFiles.length) {
-          alert('You selected more than 10 images. Only the first 10 within your quota will be processed.');
-        }
-        if (canProcess === 0) {
-          alert('No images can be processed (quota or size limit).');
-          updateQuotaStatus();
-          return;
-        }
-        _selectedFiles = validFiles.slice(0, canProcess);
+      const quota = getQuotaInfo();
+      if (quota.used >= 10) {
+        progressStatus.textContent = '';
+        progressBar.style.width = '0';
+        updateQuotaStatus();
+        toggleStripeAccordion(true);
+        return;
       }
+      // Allow up to 25MB for in-browser, >25MB for Supabase
+      const validFiles = imageFiles.filter(f => f.size <= 100*1024*1024); // allow up to 100MB for pro, but hybrid logic will route
+      let canProcess = Math.min(validFiles.length, 10 - quota.used);
+      if (imageFiles.length > 10 || validFiles.length > 10 || canProcess < validFiles.length) {
+        alert('You selected more than 10 images. Only the first 10 within your quota will be processed.');
+      }
+      if (canProcess === 0) {
+        alert('No images can be processed (quota or size limit).');
+        updateQuotaStatus();
+        return;
+      }
+      _selectedFiles = validFiles.slice(0, canProcess);
       // Show previews only (no conversion yet)
       previewTbody.innerHTML = '';
       previewTable.style.display = 'table';
@@ -688,6 +720,116 @@
 
     // Main conversion logic
     async function hybridConvert(file, maxW, maxH, quality, format, onProgress) {
+      // HEIC/HEIF input: convert to JPEG/PNG/WebP/AVIF using heic2any
+      if (isHeic(file)) {
+        try {
+          let blob = await heic2any({
+            blob: file,
+            toType: format === 'jpeg' ? 'image/jpeg' : format === 'png' ? 'image/png' : format === 'webp' ? 'image/webp' : 'image/avif',
+            quality: quality
+          });
+          let ext = format === 'jpeg' ? 'jpg' : format;
+          return { blob, filename: file.name.replace(/\.[^.]+$/, '') + '.' + ext };
+        } catch (err) {
+          throw new Error('HEIC/HEIF conversion failed: ' + err.message);
+        }
+      }
+      // AVIF input: decode to canvas, then re-encode if needed
+      if (isAvif(file)) {
+        if (format === 'avif') {
+          // No conversion needed, just return
+          return { blob: file, filename: file.name };
+        }
+        // Decode AVIF to canvas using avif.js, then encode to target format
+        try {
+          const arrayBuffer = await file.arrayBuffer();
+          const avifImage = await window.AVIF.decode(new Uint8Array(arrayBuffer));
+          const canvas = document.createElement('canvas');
+          canvas.width = avifImage.width;
+          canvas.height = avifImage.height;
+          const ctx = canvas.getContext('2d');
+          ctx.putImageData(avifImage, 0, 0);
+          let mime = format === 'jpeg' ? 'image/jpeg' : format === 'png' ? 'image/png' : 'image/webp';
+          let ext = format === 'jpeg' ? 'jpg' : format;
+          const blob = await new Promise(res => canvas.toBlob(res, mime, quality));
+          return { blob, filename: file.name.replace(/\.[^.]+$/, '') + '.' + ext };
+        } catch (err) {
+          throw new Error('AVIF conversion failed: ' + err.message);
+        }
+      }
+      // RAW input: use raw-wasm to decode to JPEG, then process
+      if (isRaw(file)) {
+        try {
+          const arrayBuffer = await file.arrayBuffer();
+          const raw = await window.RawWasm.decode(new Uint8Array(arrayBuffer));
+          const canvas = document.createElement('canvas');
+          canvas.width = raw.width;
+          canvas.height = raw.height;
+          const ctx = canvas.getContext('2d');
+          const imageData = ctx.createImageData(raw.width, raw.height);
+          imageData.data.set(raw.data);
+          ctx.putImageData(imageData, 0, 0);
+          // Continue as normal with canvas
+          let mime = format === 'jpeg' ? 'image/jpeg' : format === 'png' ? 'image/png' : format === 'webp' ? 'image/webp' : format === 'avif' ? 'image/avif' : 'image/bmp' ? 'image/bmp' : 'image/tiff' ? 'image/tiff' : 'image/gif' ? 'image/gif' : 'image/x-icon';
+          let ext = format === 'jpeg' ? 'jpg' : format;
+          const blob = await new Promise(res => canvas.toBlob(res, mime, quality));
+          return { blob, filename: file.name.replace(/\.[^.]+$/, '') + '.' + ext };
+        } catch (err) {
+          throw new Error('RAW conversion failed: ' + err.message);
+        }
+      }
+      // TIFF/BMP/GIF/SVG/ICO input: rasterize to canvas, then encode
+      if (isTiff(file) || isBmp(file) || isGif(file) || isSvg(file) || isIco(file)) {
+        // GIF: warn if animated
+        if (isGif(file)) {
+          // Only static GIFs supported
+          const arrayBuffer = await file.arrayBuffer();
+          const bytes = new Uint8Array(arrayBuffer);
+          // Check for animated GIF (netscape extension)
+          if (bytes.includes(0x21) && bytes.includes(0xFF) && bytes.includes(0x0B) && bytes.includes(0x4E) && bytes.includes(0x45) && bytes.includes(0x54) && bytes.includes(0x53) && bytes.includes(0x43) && bytes.includes(0x41) && bytes.includes(0x50) && bytes.includes(0x45)) {
+            throw new Error('Animated GIFs are not supported.');
+          }
+        }
+        return new Promise((resolve, reject) => {
+          const img = new window.Image();
+          img.onload = function() {
+            let [w, h] = [img.width, img.height];
+            let scale = Math.min(maxW / w, maxH / h, 1);
+            let nw = Math.round(w * scale), nh = Math.round(h * scale);
+            let canvas = document.createElement('canvas');
+            canvas.width = nw;
+            canvas.height = nh;
+            let ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, nw, nh);
+            let mime = format === 'jpeg' ? 'image/jpeg' : format === 'png' ? 'image/png' : format === 'webp' ? 'image/webp' : format === 'avif' ? 'image/avif' : format === 'bmp' ? 'image/bmp' : format === 'tiff' ? 'image/tiff' : format === 'gif' ? 'image/gif' : 'image/x-icon';
+            let ext = format === 'jpeg' ? 'jpg' : format;
+            canvas.toBlob(function(blob) {
+              if (!blob) reject(new Error('Conversion failed'));
+              else resolve({ blob, filename: file.name.replace(/\.[^.]+$/, '') + '.' + ext });
+            }, mime, (format === 'png') ? undefined : quality);
+          };
+          img.onerror = function() { reject(new Error('Image load failed')); };
+          img.src = URL.createObjectURL(file);
+        });
+      }
+      // AVIF output: encode using avif.js
+      if (format === 'avif') {
+        try {
+          // Convert input file to ImageBitmap
+          const imgBitmap = await createImageBitmap(file);
+          const canvas = document.createElement('canvas');
+          canvas.width = imgBitmap.width;
+          canvas.height = imgBitmap.height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(imgBitmap, 0, 0);
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const avifBuffer = await window.AVIF.encode(imageData, { quality: Math.round(quality * 100) });
+          const blob = new Blob([avifBuffer], { type: 'image/avif' });
+          return { blob, filename: file.name.replace(/\.[^.]+$/, '') + '.avif' };
+        } catch (err) {
+          throw new Error('AVIF encoding failed: ' + err.message);
+        }
+      }
       if (file.size <= 25 * 1024 * 1024) {
         // In-browser conversion on main thread using hidden canvas
         return new Promise((resolve, reject) => {
@@ -915,24 +1057,21 @@
         const idx = parseInt(e.target.getAttribute('data-index'), 10) - 1;
         const file = _selectedFiles[idx];
         if (!file) return;
-        if (!unrestrictedMode) {
-          // Quota enforcement
-          const quota = getQuotaInfo();
-          if (quota.used >= 10) {
-            alert('Free quota reached! Upgrade to process more images.');
-            updateQuotaStatus();
-            return;
-          }
-          // Only allow if file is <= 100MB (hybrid logic will route)
-          if (file.size > 100*1024*1024) {
-            alert('File is over 100MB (limit).');
-            return;
-          }
-          // Update quota
-          quota.used += 1;
-          setQuotaInfo(quota);
+        const quota = getQuotaInfo();
+        if (quota.used >= 10) {
+          alert('Free quota reached! Upgrade to process more images.');
           updateQuotaStatus();
+          return;
         }
+        // Only allow if file is <= 100MB (hybrid logic will route)
+        if (file.size > 100*1024*1024) {
+          alert('File is over 100MB (limit).');
+          return;
+        }
+        // Update quota
+        quota.used += 1;
+        setQuotaInfo(quota);
+        updateQuotaStatus();
         // Convert just this file
         let maxW = parseInt(maxWidthInput.value, 10);
         let maxH = parseInt(maxHeightInput.value, 10);
@@ -982,7 +1121,7 @@
       if (isNaN(maxW) || maxW < 1 || maxW > 99999) maxW = 99999;
       if (isNaN(maxH) || maxH < 1 || maxH > 99999) maxH = 9999;
       if (isNaN(quality) || quality < 0.1 || quality > 1) quality = 0.95;
-      let quota = getQuotaInfo();
+      const quota = getQuotaInfo();
       let canProcess = Math.min(_selectedFiles.length, 10 - quota.used);
       if (quota.used >= 10 || canProcess === 0) {
         alert('Free quota reached! Upgrade to process more images.');
@@ -1056,6 +1195,78 @@
 
     // On load, show quota status
     updateQuotaStatus();
+
+    // Add format-specific options logic
+    const formatOptionsDiv = document.getElementById('format-options');
+    outputFormatInput.addEventListener('change', updateFormatOptions);
+    function updateFormatOptions() {
+      const fmt = outputFormatInput.value;
+      formatOptionsDiv.innerHTML = '';
+      formatOptionsDiv.style.display = 'none';
+      formatOptionsDiv.style.flexDirection = 'column';
+      formatOptionsDiv.style.alignItems = 'center';
+      if (fmt === 'jpeg') {
+        // Quality already present
+        return;
+      }
+      if (fmt === 'png') {
+        formatOptionsDiv.innerHTML = `<div class='w-full flex flex-col items-center'>
+          <div class='flex items-center justify-center mb-1'>
+            <label class='font-medium mr-2'>Compression:</label>
+            <select id='png-compression' class='border rounded px-2 py-1' style='background-color:#172f37;color:#cde5da;border:1.5px solid #cde5da;'>
+              <option value='default'>Default</option>
+              <option value='fast'>Fastest</option>
+              <option value='best'>Best</option>
+            </select>
+          </div>
+          <div class='text-xs text-gray-400 mt-1 text-center' style='color:#7fd7c4;max-width:420px;padding:0 1rem;'>Choose how much to compress PNGs. "Best" is smallest but slowest, "Fastest" is quickest but larger file.</div>
+        </div>`;
+        formatOptionsDiv.style.display = 'flex';
+      } else if (fmt === 'webp') {
+        formatOptionsDiv.innerHTML = `<div class='w-full flex flex-col items-center'>
+          <div class='flex items-center justify-center mb-1'>
+            <label class='font-medium mr-2'>Lossless:</label>
+            <input type='checkbox' id='webp-lossless' class='ml-2' style='accent-color:#7fd7c4;'>
+          </div>
+          <div class='text-xs text-gray-400 mt-1 text-center' style='color:#7fd7c4;max-width:420px;padding:0 1rem;'>Enable for perfect quality (no loss), but larger file size. Unchecked uses lossy compression for smaller files.</div>
+        </div>`;
+        formatOptionsDiv.style.display = 'flex';
+      } else if (fmt === 'avif') {
+        formatOptionsDiv.innerHTML = `<div class='w-full flex flex-col items-center'>
+          <div class='flex items-center justify-center mb-1'>
+            <label class='font-medium mr-2'>Speed:</label>
+            <select id='avif-speed' class='border rounded px-2 py-1' style='background-color:#172f37;color:#cde5da;border:1.5px solid #cde5da;'>
+              ${Array.from({length:11},(_,i)=>`<option value='${i}'>${i}</option>`).join('')}
+            </select>
+          </div>
+          <div class='text-xs text-gray-400 mt-1 text-center' style='color:#7fd7c4;max-width:420px;padding:0 1rem;'>Lower speed means higher quality but slower conversion. 0 = best quality, 10 = fastest.</div>
+        </div>`;
+        formatOptionsDiv.style.display = 'flex';
+      } else if (fmt === 'tiff') {
+        formatOptionsDiv.innerHTML = `<div class='w-full flex flex-col items-center'>
+          <div class='flex items-center justify-center mb-1'>
+            <label class='font-medium mr-2'>Compression:</label>
+            <select id='tiff-compression' class='border rounded px-2 py-1' style='background-color:#172f37;color:#cde5da;border:1.5px solid #cde5da;'>
+              <option value='none'>None</option>
+              <option value='lzw'>LZW</option>
+              <option value='deflate'>Deflate</option>
+            </select>
+          </div>
+          <div class='text-xs text-gray-400 mt-1 text-center' style='color:#7fd7c4;max-width:420px;padding:0 1rem;'>Choose how to compress TIFF files. LZW and Deflate reduce file size, None is uncompressed (largest).</div>
+        </div>`;
+        formatOptionsDiv.style.display = 'flex';
+      } else if (fmt === 'gif') {
+        formatOptionsDiv.innerHTML = `<div class='w-full flex flex-col items-center'>
+          <div class='flex items-center justify-center mb-1'>
+            <label class='font-medium mr-2'>Dithering:</label>
+            <input type='checkbox' id='gif-dither' class='ml-2' style='accent-color:#7fd7c4;'>
+          </div>
+          <div class='text-xs text-gray-400 mt-1 text-center' style='color:#7fd7c4;max-width:420px;padding:0 1rem;'>Dithering helps smooth color gradients in GIFs, but can increase file size slightly.</div>
+        </div>`;
+        formatOptionsDiv.style.display = 'flex';
+      }
+    }
+    updateFormatOptions();
 
     // Stripe accordion logic
     function toggleStripeAccordion(forceOpen) {
